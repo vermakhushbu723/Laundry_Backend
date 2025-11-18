@@ -8,6 +8,7 @@
     "start": "node index.js",
     "dev": "nodemon index.js",
     "seed:admin": "node seedAdmin.js",
+    "seed:services": "node seedServices.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": ["laundry", "api", "backend"],

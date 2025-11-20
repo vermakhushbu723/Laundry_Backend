@@ -1,5 +1,5 @@
 import express from 'express';
-import { protect } from '../middleware/auth.js';
+import { protect, adminProtect } from '../middleware/auth.js';
 import Order from '../models/Order.js';
 
 const router = express.Router();
@@ -39,6 +39,100 @@ router.get('/', protect, async (req, res) => {
       orders,
     });
   } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+});
+
+/**
+ * @swagger
+ * /api/orders/all:
+ *   get:
+ *     summary: Get all orders (Admin only)
+ *     tags: [Orders]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: All orders retrieved successfully
+ */
+router.get('/all', adminProtect, async (req, res) => {
+  try {
+    console.log('🔹 Admin fetching all orders...');
+
+    const orders = await Order.find()
+      .populate('userId', 'name phoneNumber email')
+      .populate('serviceId')
+      .sort({ createdAt: -1 });
+
+    // Calculate stats
+    const totalOrders = orders.length;
+    const delivered = orders.filter(o => o.status === 'delivered').length;
+    const cancelled = orders.filter(o => o.status === 'cancelled').length;
+    const pending = orders.filter(o => o.status === 'pending').length;
+    const picked = orders.filter(o => o.status === 'picked').length;
+    const inProcess = orders.filter(o => o.status === 'in-process').length;
+
+    console.log('✅ All orders fetched:', totalOrders);
+
+    res.status(200).json({
+      success: true,
+      stats: {
+        totalOrders,
+        delivered,
+        cancelled,
+        pending,
+        picked,
+        inProcess,
+      },
+      orders,
+    });
+  } catch (error) {
+    console.error('❌ Error fetching all orders:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+});
+
+/**
+ * @swagger
+ * /api/orders/stats:
+ *   get:
+ *     summary: Get order statistics (Admin only)
+ *     tags: [Orders]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Stats retrieved successfully
+ */
+router.get('/stats', adminProtect, async (req, res) => {
+  try {
+    console.log('🔹 Fetching order stats...');
+
+    const orders = await Order.find();
+
+    const stats = {
+      totalOrders: orders.length,
+      delivered: orders.filter(o => o.status === 'delivered').length,
+      cancelled: orders.filter(o => o.status === 'cancelled').length,
+      pending: orders.filter(o => o.status === 'pending').length,
+      picked: orders.filter(o => o.status === 'picked').length,
+      inProcess: orders.filter(o => o.status === 'in-process').length,
+    };
+
+    console.log('✅ Stats fetched:', stats);
+
+    res.status(200).json({
+      success: true,
+      stats,
+    });
+  } catch (error) {
+    console.error('❌ Error fetching stats:', error);
     res.status(500).json({
       success: false,
       message: error.message,
@@ -321,39 +415,79 @@ router.patch('/:id/status', protect, async (req, res) => {
   }
 });
 
-// Admin route - Get all orders with stats
-router.get('/all', protect, async (req, res) => {
+/**
+ * @swagger
+ * /api/orders/{id}/status:
+ *   patch:
+ *     summary: Update order status (Admin only)
+ *     tags: [Orders]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - status
+ *             properties:
+ *               status:
+ *                 type: string
+ *                 enum: [pending, picked, in-process, delivered, cancelled]
+ *     responses:
+ *       200:
+ *         description: Order status updated successfully
+ */
+router.patch('/:id/status', adminProtect, async (req, res) => {
   try {
-    console.log('🔹 Admin fetching all orders...');
+    console.log('🔹 Updating order status:', req.params.id);
+    console.log('New status:', req.body.status);
 
-    const orders = await Order.find()
-      .populate('userId', 'name phoneNumber email')
-      .sort({ createdAt: -1 });
+    const { status } = req.body;
 
-    // Calculate stats
-    const totalOrders = orders.length;
-    const delivered = orders.filter(o => o.status === 'delivered').length;
-    const cancelled = orders.filter(o => o.status === 'cancelled').length;
-    const pending = orders.filter(o => o.status === 'pending').length;
-    const picked = orders.filter(o => o.status === 'picked').length;
-    const inProcess = orders.filter(o => o.status === 'in-process').length;
+    if (!status) {
+      return res.status(400).json({
+        success: false,
+        message: 'Status is required',
+      });
+    }
 
-    console.log('✅ All orders fetched:', totalOrders);
+    const validStatuses = ['pending', 'picked', 'in-process', 'delivered', 'cancelled'];
+    if (!validStatuses.includes(status)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid status value',
+      });
+    }
+
+    const order = await Order.findById(req.params.id);
+
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        message: 'Order not found',
+      });
+    }
+
+    order.status = status;
+    await order.save();
+
+    console.log('✅ Order status updated successfully');
 
     res.status(200).json({
       success: true,
-      stats: {
-        totalOrders,
-        delivered,
-        cancelled,
-        pending,
-        picked,
-        inProcess,
-      },
-      orders,
+      message: 'Order status updated successfully',
+      order,
     });
   } catch (error) {
-    console.error('❌ Error fetching all orders:', error);
+    console.error('❌ Error updating order status:', error);
     res.status(500).json({
       success: false,
       message: error.message,
@@ -361,30 +495,40 @@ router.get('/all', protect, async (req, res) => {
   }
 });
 
-// Admin route - Get orders stats only
-router.get('/stats', protect, async (req, res) => {
+/**
+ * @swagger
+ * /api/orders/{id}:
+ *   delete:
+ *     summary: Delete order (Admin only)
+ *     tags: [Orders]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Order deleted successfully
+ */
+router.delete('/:id', adminProtect, async (req, res) => {
   try {
-    console.log('🔹 Fetching order stats...');
+    const order = await Order.findByIdAndDelete(req.params.id);
 
-    const orders = await Order.find();
-
-    const stats = {
-      totalOrders: orders.length,
-      delivered: orders.filter(o => o.status === 'delivered').length,
-      cancelled: orders.filter(o => o.status === 'cancelled').length,
-      pending: orders.filter(o => o.status === 'pending').length,
-      picked: orders.filter(o => o.status === 'picked').length,
-      inProcess: orders.filter(o => o.status === 'in-process').length,
-    };
-
-    console.log('✅ Stats fetched:', stats);
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        message: 'Order not found',
+      });
+    }
 
     res.status(200).json({
       success: true,
-      stats,
+      message: 'Order deleted successfully',
     });
   } catch (error) {
-    console.error('❌ Error fetching stats:', error);
     res.status(500).json({
       success: false,
       message: error.message,

@@ -119,7 +119,45 @@ router.get('/', getAllServices);
  *       500:
  *         description: Server error
  */
-router.get('/all', protect, adminProtect, getAllServicesAdmin);
+router.get('/all', adminProtect, getAllServicesAdmin);
+
+/**
+ * @swagger
+ * /api/services/{id}/toggle:
+ *   patch:
+ *     summary: Toggle service active status (Admin only)
+ *     tags: [Services]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Service ID
+ *     responses:
+ *       200:
+ *         description: Service status toggled successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *                 service:
+ *                   $ref: '#/components/schemas/Service'
+ *       401:
+ *         description: Unauthorized
+ *       404:
+ *         description: Service not found
+ *       500:
+ *         description: Server error
+ */
+router.patch('/:id/toggle', adminProtect, toggleServiceStatus);
 
 /**
  * @swagger
@@ -211,7 +249,7 @@ router.get('/:id', getServiceById);
  *       500:
  *         description: Server error
  */
-router.post('/', protect, adminProtect, createService);
+router.post('/', adminProtect, createService);
 
 /**
  * @swagger
@@ -278,7 +316,7 @@ router.post('/', protect, adminProtect, createService);
  *       500:
  *         description: Server error
  */
-router.put('/:id', protect, adminProtect, updateService);
+router.put('/:id', adminProtect, updateService);
 
 /**
  * @swagger
@@ -305,7 +343,7 @@ router.put('/:id', protect, adminProtect, updateService);
  *       500:
  *         description: Server error
  */
-router.delete('/:id', protect, adminProtect, deleteService);
+router.delete('/:id', adminProtect, deleteService);
 
 /**
  * @swagger
@@ -332,44 +370,6 @@ router.delete('/:id', protect, adminProtect, deleteService);
  *       500:
  *         description: Server error
  */
-router.delete('/:id/permanent', protect, adminProtect, permanentDeleteService);
-
-/**
- * @swagger
- * /api/services/{id}/toggle:
- *   patch:
- *     summary: Toggle service active status (Admin only)
- *     tags: [Services]
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: string
- *         description: Service ID
- *     responses:
- *       200:
- *         description: Service status toggled successfully
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                 message:
- *                   type: string
- *                 service:
- *                   $ref: '#/components/schemas/Service'
- *       401:
- *         description: Unauthorized
- *       404:
- *         description: Service not found
- *       500:
- *         description: Server error
- */
-router.patch('/:id/toggle', protect, adminProtect, toggleServiceStatus);
+router.delete('/:id/permanent', adminProtect, permanentDeleteService);
 
 export default router;

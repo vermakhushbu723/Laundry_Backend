@@ -1,5 +1,5 @@
 import express from 'express';
-import { protect } from '../middleware/auth.js';
+import { protect, adminProtect } from '../middleware/auth.js';
 import User from '../models/User.js';
 import Order from '../models/Order.js';
 
@@ -124,6 +124,178 @@ router.get('/dashboard', protect, async (req, res) => {
         pendingOrders,
       },
       recentOrders,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+});
+
+/**
+ * @swagger
+ * /api/user/all:
+ *   get:
+ *     summary: Get all users (Admin only)
+ *     tags: [User]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: All users retrieved successfully
+ */
+router.get('/all', adminProtect, async (req, res) => {
+  try {
+    const users = await User.find().select('-otp -otpExpiry').sort({ createdAt: -1 });
+    
+    res.status(200).json({
+      success: true,
+      count: users.length,
+      users,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+});
+
+/**
+ * @swagger
+ * /api/user/{id}:
+ *   get:
+ *     summary: Get user by ID (Admin only)
+ *     tags: [User]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: User retrieved successfully
+ */
+router.get('/:id', adminProtect, async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id).select('-otp -otpExpiry');
+    
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found',
+      });
+    }
+    
+    res.status(200).json({
+      success: true,
+      user,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+});
+
+/**
+ * @swagger
+ * /api/user/{id}:
+ *   put:
+ *     summary: Update user by ID (Admin only)
+ *     tags: [User]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               name:
+ *                 type: string
+ *               email:
+ *                 type: string
+ *               address:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: User updated successfully
+ */
+router.put('/:id', adminProtect, async (req, res) => {
+  try {
+    const { name, email, address } = req.body;
+    
+    const user = await User.findByIdAndUpdate(
+      req.params.id,
+      { name, email, address },
+      { new: true }
+    ).select('-otp -otpExpiry');
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found',
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: 'User updated successfully',
+      user,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+});
+
+/**
+ * @swagger
+ * /api/user/{id}:
+ *   delete:
+ *     summary: Delete user by ID (Admin only)
+ *     tags: [User]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: User deleted successfully
+ */
+router.delete('/:id', adminProtect, async (req, res) => {
+  try {
+    const user = await User.findByIdAndDelete(req.params.id);
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found',
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: 'User deleted successfully',
     });
   } catch (error) {
     res.status(500).json({

@@ -9,6 +9,7 @@ import userRoutes from './src/routes/userRoutes.js';
 import serviceRoutes from './src/routes/serviceRoutes.js';
 import orderRoutes from './src/routes/orderRoutes.js';
 import bookingRoutes from './src/routes/bookingRoutes.js';
+import adminRoutes from './src/routes/adminRoutes.js';
 
 // Load environment variables
 dotenv.config();
@@ -69,6 +70,7 @@ app.use('/api/user', userRoutes);
 app.use('/api/services', serviceRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/bookings', bookingRoutes);
+app.use('/api/admin', adminRoutes);
 
 // Health Check
 app.get('/health', (req, res) => {

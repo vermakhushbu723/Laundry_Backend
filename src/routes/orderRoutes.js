@@ -339,86 +339,6 @@ router.patch('/:id/cancel', protect, async (req, res) => {
  * @swagger
  * /api/orders/{id}/status:
  *   patch:
- *     summary: Update order status
- *     tags: [Orders]
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: string
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required:
- *               - status
- *             properties:
- *               status:
- *                 type: string
- *                 enum: [pending, picked, in-process, delivered, cancelled]
- *     responses:
- *       200:
- *         description: Order status updated successfully
- */
-router.patch('/:id/status', protect, async (req, res) => {
-  try {
-    console.log('🔹 Updating order status:', req.params.id);
-    console.log('New status:', req.body.status);
-
-    const { status } = req.body;
-
-    if (!status) {
-      return res.status(400).json({
-        success: false,
-        message: 'Status is required',
-      });
-    }
-
-    const validStatuses = ['pending', 'picked', 'in-process', 'delivered', 'cancelled'];
-    if (!validStatuses.includes(status)) {
-      return res.status(400).json({
-        success: false,
-        message: 'Invalid status value',
-      });
-    }
-
-    const order = await Order.findById(req.params.id);
-
-    if (!order) {
-      return res.status(404).json({
-        success: false,
-        message: 'Order not found',
-      });
-    }
-
-    order.status = status;
-    await order.save();
-
-    console.log('✅ Order status updated successfully');
-
-    res.status(200).json({
-      success: true,
-      message: 'Order status updated successfully',
-      order,
-    });
-  } catch (error) {
-    console.error('❌ Error updating order status:', error);
-    res.status(500).json({
-      success: false,
-      message: error.message,
-    });
-  }
-});
-
-/**
- * @swagger
- * /api/orders/{id}/status:
- *   patch:
  *     summary: Update order status (Admin only)
  *     tags: [Orders]
  *     security:
@@ -447,7 +367,8 @@ router.patch('/:id/status', protect, async (req, res) => {
  */
 router.patch('/:id/status', adminProtect, async (req, res) => {
   try {
-    console.log('🔹 Updating order status:', req.params.id);
+    console.log('🔹 Admin updating order status:', req.params.id);
+    console.log('Admin:', req.admin?.email);
     console.log('New status:', req.body.status);
 
     const { status } = req.body;
@@ -467,7 +388,7 @@ router.patch('/:id/status', adminProtect, async (req, res) => {
       });
     }
 
-    const order = await Order.findById(req.params.id);
+    const order = await Order.findById(req.params.id).populate('userId', 'name phoneNumber email');
 
     if (!order) {
       return res.status(404).json({

@@ -3,6 +3,8 @@ import { adminProtect } from '../middleware/auth.js';
 import User from '../models/User.js';
 import Order from '../models/Order.js';
 import Service from '../models/Service.js';
+import Admin from '../models/Admin.js';
+import bcrypt from 'bcryptjs';
 
 const router = express.Router();
 
@@ -288,6 +290,147 @@ router.get('/marketing-stats', adminProtect, async (req, res) => {
     });
   } catch (error) {
     console.error('❌ Error fetching marketing stats:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+});
+
+/**
+ * @swagger
+ * /api/admin/profile:
+ *   get:
+ *     summary: Get admin profile (Admin only)
+ *     tags: [Admin]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Admin profile retrieved successfully
+ */
+router.get('/profile', adminProtect, async (req, res) => {
+  try {
+    const admin = await Admin.findById(req.admin._id).select('-password');
+    
+    res.status(200).json({
+      success: true,
+      admin,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+});
+
+/**
+ * @swagger
+ * /api/admin/profile:
+ *   put:
+ *     summary: Update admin profile (Admin only)
+ *     tags: [Admin]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               name:
+ *                 type: string
+ *               email:
+ *                 type: string
+ *               phone:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Profile updated successfully
+ */
+router.put('/profile', adminProtect, async (req, res) => {
+  try {
+    const { name, email, phone } = req.body;
+    
+    const admin = await Admin.findByIdAndUpdate(
+      req.admin._id,
+      { name, email, phone },
+      { new: true }
+    ).select('-password');
+
+    res.status(200).json({
+      success: true,
+      message: 'Profile updated successfully',
+      admin,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+});
+
+/**
+ * @swagger
+ * /api/admin/change-password:
+ *   put:
+ *     summary: Change admin password (Admin only)
+ *     tags: [Admin]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - currentPassword
+ *               - newPassword
+ *             properties:
+ *               currentPassword:
+ *                 type: string
+ *               newPassword:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Password changed successfully
+ */
+router.put('/change-password', adminProtect, async (req, res) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please provide current and new password',
+      });
+    }
+
+    const admin = await Admin.findById(req.admin._id);
+
+    // Check current password
+    const isMatch = await bcrypt.compare(currentPassword, admin.password);
+    if (!isMatch) {
+      return res.status(401).json({
+        success: false,
+        message: 'Current password is incorrect',
+      });
+    }
+
+    // Hash new password
+    const salt = await bcrypt.genSalt(10);
+    admin.password = await bcrypt.hash(newPassword, salt);
+    await admin.save();
+
+    res.status(200).json({
+      success: true,
+      message: 'Password changed successfully',
+    });
+  } catch (error) {
     res.status(500).json({
       success: false,
       message: error.message,

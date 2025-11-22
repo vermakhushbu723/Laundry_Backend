@@ -4,7 +4,12 @@ import User from '../models/User.js';
 import Order from '../models/Order.js';
 import Service from '../models/Service.js';
 import Admin from '../models/Admin.js';
+import Contact from '../models/Contact.js';
 import bcrypt from 'bcryptjs';
+import { 
+  getAllContacts, 
+  getContactStats 
+} from '../controllers/contactController.js';
 
 const router = express.Router();
 
@@ -163,49 +168,42 @@ router.get('/sms-logs', adminProtect, async (req, res) => {
  */
 router.get('/contacts', adminProtect, async (req, res) => {
   try {
-    console.log('🔹 Fetching all contacts...');
+    console.log('🔹 Fetching all contacts from Contact model...');
+    const { page = 1, limit = 50, search = '', userId } = req.query;
 
-    // Get all users who have contact permission enabled
-    const users = await User.find({ 
-      contactPermission: true,
-      'contacts.0': { $exists: true } // Only users with contacts
-    }).select('name phoneNumber contacts');
+    console.log('📊 Query params:', { page, limit, search, userId });
 
-    // Flatten contacts with user info
-    const allContacts = [];
-    users.forEach(user => {
-      if (user.contacts && user.contacts.length > 0) {
-        user.contacts.forEach(contact => {
-          allContacts.push({
-            _id: contact._id,
-            userName: user.name,
-            userPhone: user.phoneNumber,
-            userId: user._id,
-            contactName: contact.name,
-            contactPhone: contact.phoneNumber,
-          });
-        });
-      }
-    });
-
-    // Remove duplicate contacts based on phone number
-    const uniqueContacts = [];
-    const phoneSet = new Set();
+    const query = {};
     
-    allContacts.forEach(contact => {
-      if (contact.contactPhone && !phoneSet.has(contact.contactPhone)) {
-        phoneSet.add(contact.contactPhone);
-        uniqueContacts.push(contact);
-      }
-    });
+    if (userId) {
+      query.userId = userId;
+    }
+    
+    if (search) {
+      query.$or = [
+        { name: { $regex: search, $options: 'i' } },
+        { phoneNumber: { $regex: search, $options: 'i' } },
+      ];
+    }
 
-    console.log('✅ Contacts fetched:', uniqueContacts.length);
+    const contacts = await Contact.find(query)
+      .populate('userId', 'name phoneNumber email')
+      .limit(parseInt(limit))
+      .skip((parseInt(page) - 1) * parseInt(limit))
+      .sort({ createdAt: -1 })
+      .select('-__v');
+
+    const count = await Contact.countDocuments(query);
+
+    console.log('✅ Contacts fetched from Contact model:', contacts.length);
+    console.log('📊 Total count:', count);
 
     res.status(200).json({
       success: true,
-      count: uniqueContacts.length,
-      totalWithDuplicates: allContacts.length,
-      contacts: uniqueContacts,
+      data: contacts,
+      totalPages: Math.ceil(count / parseInt(limit)),
+      currentPage: parseInt(page),
+      total: count,
     });
   } catch (error) {
     console.error('❌ Error fetching contacts:', error);
@@ -437,5 +435,9 @@ router.put('/change-password', adminProtect, async (req, res) => {
     });
   }
 });
+
+// Contact management routes
+router.get('/contacts', adminProtect, getAllContacts);
+router.get('/contacts/stats', adminProtect, getContactStats);
 
 export default router;

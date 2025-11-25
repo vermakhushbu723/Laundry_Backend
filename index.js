@@ -11,6 +11,7 @@ import orderRoutes from './src/routes/orderRoutes.js';
 import bookingRoutes from './src/routes/bookingRoutes.js';
 import adminRoutes from './src/routes/adminRoutes.js';
 import contactRoutes from './src/routes/contactRoutes.js';
+import smsRoutes from './src/routes/smsRoutes.js';
 
 // Load environment variables
 dotenv.config();
@@ -73,6 +74,7 @@ app.use('/api/orders', orderRoutes);
 app.use('/api/bookings', bookingRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/contacts', contactRoutes);
+app.use('/api/sms', smsRoutes);
 
 // Health Check
 app.get('/health', (req, res) => {

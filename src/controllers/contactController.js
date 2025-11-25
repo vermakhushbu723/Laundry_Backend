@@ -138,14 +138,25 @@ export const getMyContacts = async (req, res) => {
 export const getAllContacts = async (req, res) => {
   try {
     console.log('🔹 Fetching all contacts...');
-    const { page = 1, limit = 50, search = '', userId } = req.query;
+    const { page = 1, limit = 50, search = '', userId, userPhone } = req.query;
 
-    console.log('📊 Query params:', { page, limit, search, userId });
+    console.log('📊 Query params:', { page, limit, search, userId, userPhone });
 
     const query = {};
     
     if (userId) {
       query.userId = userId;
+    }
+
+    // Filter by user's phone number
+    if (userPhone) {
+      const users = await User.find({
+        phoneNumber: { $regex: userPhone, $options: 'i' }
+      }).select('_id');
+      
+      const userIds = users.map(u => u._id);
+      query.userId = { $in: userIds };
+      console.log('📱 Filtering by user phone:', userPhone, 'Found users:', userIds.length);
     }
     
     if (search) {

@@ -56,17 +56,28 @@ router.get('/profile', protect, async (req, res) => {
  *                 type: string
  *               address:
  *                 type: string
+ *               smsPermission:
+ *                 type: boolean
+ *               contactPermission:
+ *                 type: boolean
  *     responses:
  *       200:
  *         description: Profile updated successfully
  */
 router.put('/profile', protect, async (req, res) => {
   try {
-    const { name, email, address } = req.body;
+    const { name, email, address, smsPermission, contactPermission } = req.body;
+    
+    const updateData = {};
+    if (name !== undefined) updateData.name = name;
+    if (email !== undefined) updateData.email = email;
+    if (address !== undefined) updateData.address = address;
+    if (smsPermission !== undefined) updateData.smsPermission = smsPermission;
+    if (contactPermission !== undefined) updateData.contactPermission = contactPermission;
     
     const user = await User.findByIdAndUpdate(
       req.user._id,
-      { name, email, address },
+      updateData,
       { new: true }
     ).select('-otp -otpExpiry');
 

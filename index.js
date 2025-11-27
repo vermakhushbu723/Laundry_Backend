@@ -32,12 +32,12 @@ const swaggerOptions = {
   definition: {
     openapi: '3.0.0',
     info: {
-      title: 'Laundry App API',
+      title: 'DhobiGo API',
       version: '1.0.0',
-      description: 'API documentation for Laundry App',
+      description: 'API documentation for DhobiGo',
       contact: {
         name: 'API Support',
-        email: 'support@laundryapp.com',
+        email: 'support@dhobigo.com',
       },
     },
     servers: [
@@ -84,7 +84,7 @@ app.get('/health', (req, res) => {
 // Root Route
 app.get('/', (req, res) => {
   res.json({ 
-    message: 'Laundry App API',
+    message: 'DhobiGo API',
     documentation: '/api-docs'
   });
 });

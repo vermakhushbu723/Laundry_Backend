@@ -12,7 +12,7 @@ const seedAdmin = async () => {
     console.log('MongoDB Connected...');
 
     // Check if admin already exists
-    const existingAdmin = await Admin.findOne({ email: 'admin@laundry.com' });
+    const existingAdmin = await Admin.findOne({ email: 'admin@dhobigo.com' });
 
     if (existingAdmin) {
       console.log('Admin already exists!');
@@ -25,7 +25,7 @@ const seedAdmin = async () => {
     const hashedPassword = await bcrypt.hash('admin123', 10);
 
     const admin = await Admin.create({
-      email: 'admin@laundry.com',
+      email: 'admin@dhobigo.com',
       password: hashedPassword,
       name: 'Admin User',
       role: 'admin',

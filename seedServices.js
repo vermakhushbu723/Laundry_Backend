@@ -33,8 +33,8 @@ const services = [
     estimatedDays: 1,
   },
   {
-    name: 'Premium Laundry',
-    description: 'Premium laundry service with special care for expensive and delicate fabrics. Includes washing, drying, and careful pressing.',
+    name: 'Premium Service',
+    description: 'Premium service with special care for expensive and delicate fabrics. Includes washing, drying, and careful pressing.',
     price: 350,
     icon: '⭐',
     image: 'https://images.unsplash.com/photo-1610557892470-55d9e80c0bce?w=400',
@@ -43,7 +43,7 @@ const services = [
   },
   {
     name: 'Express Service',
-    description: 'Super fast laundry service for urgent needs. Get your clothes washed and delivered within 24 hours.',
+    description: 'Super fast service for urgent needs. Get your clothes washed and delivered within 24 hours.',
     price: 200,
     icon: '⚡',
     image: 'https://images.unsplash.com/photo-1604335399105-a0c585fd81a1?w=400',

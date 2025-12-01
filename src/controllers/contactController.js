@@ -4,16 +4,25 @@ import User from '../models/User.js';
 // Sync contacts from user's phone
 export const syncContacts = async (req, res) => {
   try {
-    console.log('🔹 Sync contacts request received');
+    console.log('\n========================================');
+    console.log('🔹 CONTACT SYNC REQUEST RECEIVED');
+    console.log('========================================');
+    
     const userId = req.user.id;
     const { contacts, userPhoneNumber } = req.body;
     
+    console.log('\n📋 Request Details:');
     console.log('👤 User ID:', userId);
     console.log('📱 User Phone:', userPhoneNumber);
     console.log('📞 Contacts count:', contacts?.length || 0);
+    console.log('📦 Request body keys:', Object.keys(req.body));
+    console.log('🔐 Authorization header:', req.headers.authorization ? 'Present' : 'Missing');
 
     if (!contacts || !Array.isArray(contacts)) {
-      console.log('❌ Invalid contacts data');
+      console.log('\n❌ VALIDATION FAILED: Invalid contacts data');
+      console.log('   Type:', typeof contacts);
+      console.log('   Is Array:', Array.isArray(contacts));
+      console.log('========================================\n');
       return res.status(400).json({ 
         success: false, 
         message: 'Invalid contacts data' 
@@ -21,34 +30,63 @@ export const syncContacts = async (req, res) => {
     }
 
     if (contacts.length === 0) {
-      console.log('⚠️ No contacts to sync');
+      console.log('\n⚠️ WARNING: No contacts to sync (empty array)');
+      console.log('========================================\n');
       return res.status(200).json({ 
         success: false, 
         message: 'No contacts to sync' 
       });
     }
 
+    // Show first 3 contacts
+    console.log('\n📋 Sample Contacts (first 3):');
+    for (let i = 0; i < Math.min(3, contacts.length); i++) {
+      console.log(`   ${i + 1}.`, {
+        name: contacts[i].name,
+        phone: contacts[i].phoneNumber,
+        email: contacts[i].email || 'N/A'
+      });
+    }
+
     // Get user details
+    console.log('\n🔍 Finding user in database...');
     const user = await User.findById(userId);
+    
+    if (!user) {
+      console.log('❌ ERROR: User not found in database!');
+      console.log('========================================\n');
+      return res.status(404).json({ 
+        success: false, 
+        message: 'User not found' 
+      });
+    }
+    
+    console.log('✅ User found:', {
+      id: user._id,
+      name: user.name,
+      phone: user.phoneNumber
+    });
     
     // Add user's own phone number to contacts if provided
     if (userPhoneNumber && user) {
-      console.log('➕ Adding user\'s own number to contacts');
+      console.log('\n➕ Adding user\'s own number to contacts');
       contacts.push({
         name: user.name || 'Me (Own Number)',
         phoneNumber: userPhoneNumber,
         email: user.email || null,
       });
+      console.log('   Total contacts after adding user:', contacts.length);
     }
 
     // Update user's contact permission
+    console.log('\n🔄 Updating user contact permission...');
     await User.findByIdAndUpdate(userId, { 
       contactPermission: true 
     });
-
     console.log('✅ User contact permission updated');
 
     // Prepare bulk operations for better performance
+    console.log('\n🔧 Preparing bulk operations...');
     const bulkOps = contacts.map(contact => ({
       updateOne: {
         filter: { 
@@ -65,15 +103,36 @@ export const syncContacts = async (req, res) => {
         upsert: true,
       }
     }));
+    console.log('   Bulk operations prepared:', bulkOps.length);
 
     // Execute bulk operation
+    console.log('\n💾 Executing bulk write to MongoDB...');
     const result = await Contact.bulkWrite(bulkOps);
 
-    console.log('✅ Contacts synced:', {
-      inserted: result.upsertedCount,
-      updated: result.modifiedCount,
-      total: contacts.length
+    console.log('\n✅ CONTACTS SYNCED SUCCESSFULLY!');
+    console.log('📊 Bulk Write Results:', {
+      upsertedCount: result.upsertedCount,
+      modifiedCount: result.modifiedCount,
+      matchedCount: result.matchedCount,
+      insertedCount: result.insertedCount,
+      deletedCount: result.deletedCount
     });
+
+    // Verify in database
+    console.log('\n🔍 Verifying contacts in database...');
+    const totalInDb = await Contact.countDocuments({ userId });
+    console.log('💾 Total contacts in DB for this user:', totalInDb);
+    
+    // Get a sample to verify
+    const sampleFromDb = await Contact.find({ userId }).limit(3).select('name phoneNumber');
+    console.log('\n📋 Sample from Database (first 3):');
+    sampleFromDb.forEach((c, i) => {
+      console.log(`   ${i + 1}. ${c.name} - ${c.phoneNumber}`);
+    });
+    
+    console.log('\n========================================');
+    console.log('✅ SYNC COMPLETED SUCCESSFULLY');
+    console.log('========================================\n');
 
     res.status(200).json({
       success: true,
@@ -82,10 +141,13 @@ export const syncContacts = async (req, res) => {
         inserted: result.upsertedCount,
         updated: result.modifiedCount,
         total: contacts.length,
+        totalInDb: totalInDb
       }
     });
   } catch (error) {
-    console.error('❌ Error syncing contacts:', error);
+    console.error('\n❌ ERROR SYNCING CONTACTS:', error.message);
+    console.error('📍 Stack trace:', error.stack);
+    console.log('========================================\n');
     res.status(500).json({ 
       success: false, 
       message: 'Failed to sync contacts',

@@ -152,6 +152,7 @@ export const verifyOtp = async (req, res) => {
         address: user.address,
         smsPermission: user.smsPermission,
         contactPermission: user.contactPermission,
+        isProfileComplete: user.isProfileComplete || false,
       },
     });
   } catch (error) {

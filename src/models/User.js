@@ -37,6 +37,10 @@ const userSchema = new mongoose.Schema({
     type: Boolean,
     default: false,
   },
+  isProfileComplete: {
+    type: Boolean,
+    default: false,
+  },
   fcmToken: {
     type: String,
   },

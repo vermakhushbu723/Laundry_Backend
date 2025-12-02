@@ -75,6 +75,11 @@ router.put('/profile', protect, async (req, res) => {
     if (smsPermission !== undefined) updateData.smsPermission = smsPermission;
     if (contactPermission !== undefined) updateData.contactPermission = contactPermission;
     
+    // Mark profile as complete if name and address are provided
+    if (name && address) {
+      updateData.isProfileComplete = true;
+    }
+    
     const user = await User.findByIdAndUpdate(
       req.user._id,
       updateData,

@@ -1,5 +1,6 @@
 import express from 'express';
-import { sendOtp, verifyOtp, resendOtp } from '../controllers/authController.js';
+import { sendOtp, verifyOtp, resendOtp, logout } from '../controllers/authController.js';
+import { protect } from '../middleware/auth.js';
 
 const router = express.Router();
 
@@ -143,5 +144,21 @@ import { adminLogin, createAdmin } from '../controllers/adminController.js';
 
 router.post('/admin/login', adminLogin);
 router.post('/admin/create', createAdmin);
+
+/**
+ * @swagger
+ * /api/auth/logout:
+ *   post:
+ *     summary: Logout user
+ *     tags: [Authentication]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Logged out successfully
+ *       401:
+ *         description: Unauthorized
+ */
+router.post('/logout', protect, logout);
 
 export default router;
